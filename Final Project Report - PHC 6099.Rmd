@@ -1,0 +1,197 @@
+---
+title: "Final Project Report - PHC 6099"
+author: "Andres Davila"
+date: "2026-06-16"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Stages of Parkinson's Disease: An Analysis of Vocal Recordings
+
+Vocal detection is a cost-effective and non-invasive way to monitor Parkinson's disease (PD) over time. While it can be helpful to assisting PD and understanding how vocal recordings can detect PD, there are questions regarding the design for studying vocal recordings. For the analysis, the dataset is the Oxford Parkinson’s Disease Detection Dataset from the UCI Machine Learning Repository. This dataset comprises biomedical voice measurements from 31 individuals, 23 of whom have Parkinson’s disease. There will be two questions to be analyzed:
+
+Can we predict the average vocal frequency of a patient based on micromovements in their vocal stability (such as jitters or shimmers)?
+
+What is the association between the vocal boundaries of a patient and their progression of Parkinson’s disease?
+
+### Data Exploration
+
+```{r}
+
+parkinsons <- read.csv("/Users/andresdavila/Downloads/parkinsons.csv", header = TRUE)
+head(parkinsons)
+
+
+```
+
+```{r}
+
+colnames(parkinsons)
+
+```
+
+Variable Descriptions, from the UCI Repository:
+
+name - ASCII subject name and recording number
+
+MDVP:Fo(Hz) - Average vocal fundamental frequency
+
+MDVP:Fhi(Hz) - Maximum vocal fundamental frequency
+
+MDVP:Flo(Hz) - Minimum vocal fundamental frequency
+
+MDVP:Jitter(%),MDVP:Jitter(Abs),MDVP:RAP,MDVP:PPQ,Jitter:DDP - Several measures of variation in fundamental frequency
+
+MDVP:Shimmer,MDVP:Shimmer(dB),Shimmer:APQ3,Shimmer:APQ5,MDVP:APQ,Shimmer:DDA - Several measures of variation in amplitude
+
+NHR,HNR - Two measures of ratio of noise to tonal components in the voice
+
+status - Health status of the subject (one) - Parkinson's, (zero) - healthy
+
+RPDE,D2 - Two nonlinear dynamical complexity measures
+
+DFA - Signal fractal scaling exponent
+
+spread1,spread2,PPE - Three nonlinear measures of fundamental frequency variation
+
+For this analysis, the following variables will be used: ***MDVP:Fhi, MDVP:Jitter, MDVP:Shimmer, MDVP: Flo, NHR, HNR, status, MDVP:Fo, RPDE, DFA, PPE***.
+
+### Explanatory Data Analysis (EDA)
+
+```{r}
+
+any(is.na(parkinsons))
+
+```
+
+
+```{r}
+
+summary(parkinsons$MDVP.Jitter)
+hist(parkinsons$MDVP.Jitter)
+
+```
+
+```{r}
+
+summary(parkinsons$MDVP.Fhi)
+hist(parkinsons$MDVP.Fhi)
+
+```
+
+```{r}
+
+summary(parkinsons$MDVP.Fo)
+hist(parkinsons$MDVP.Fo)
+
+```
+
+```{r}
+
+summary(parkinsons$MDVP.Flo)
+hist(parkinsons$MDVP.Flo)
+
+```
+
+```{r}
+
+boxplot(parkinsons$MDVP.Flo, parkinsons$MDVP.Fhi, parkinsons$MDVP.Fo, data = parkinsons,
+        names = c("Flo", "Fhi", "Fo"),
+        main = "Distribution of Predictor Variables",
+        col = c("red", "yellow", "blue"))
+
+```
+
+```{r}
+
+boxplot(parkinsons$RPDE, parkinsons$DFA, parkinsons$PPE, data = parkinsons,
+        names = c("RPDE", "DFA", "PPE"),
+        main = "Distribution of Predictor Variables - Noncomplexity",
+        col = c("red", "yellow", "blue"))
+
+
+```
+
+```{r}
+
+boxplot(parkinsons$MDVP.Jitter,
+        name = c("Jitter"),
+        main = "Jitter Variable",
+        col = "purple")
+
+```
+
+### Analysis
+
+#### Hypothesis Testing
+
+Question: Can we predict the average vocal frequency of a patient based on micromovements in their vocal stability (such as jitters or shimmers)?
+
+For this question, we will be conducting an F-test to test if the variables are significant towards the average vocal frequency of a patient based on vocal stability.
+
+$H_0 =$ There is no relationship between average vocal frequency and higher counts of vocal stability.
+
+$H_1=$ There is a relationship between average vocal frequency and higher counts of vocal stability.
+
+```{r}
+
+# F-test
+
+avg_hp <- lm(parkinsons$MDVP.Fo ~ parkinsons$MDVP.Jitter + parkinsons$MDVP.Shimmer + NHR + HNR,
+            data = parkinsons)
+summary(avg_hp)
+
+```
+
+Based on the f-statistic (2.835) with the p-value (0.02577), there is significant evidence that there is a relationship between average vocal frequency and higher counts of vocal stability. This is also seen in how MDVP:Jitter and NHR are statistically significant, indicating that they are impactful towards the average vocal frequency.
+
+#### Linear Regression
+
+Question: What is the association between the vocal boundaries of a patient and their progression of Parkinson’s disease?
+
+Model 1 $HNR = \beta_0 + \beta_1*MDVP.Fo + \beta_2*MDVP.Fhi + \beta_2*MDVP.Flo + \beta_4*MDVP.Jitter + \beta_5MDVP.Shimmer$
+
+Model 2 - Adding Complexity $HNR = \beta_0 + \beta_1*MDVP.Fo + \beta_2*MDVP.Fhi + \beta_2*MDVP.Flo + \beta_4*MDVP.Jitter$ $+ \beta_5MDVP.Shimmer + \beta_6*RPDE + \beta_7*DFA + \beta_8*PPE$
+
+```{r}
+
+parkinsons_patients <- subset(parkinsons, status == 1)
+
+boundaries <- lm(HNR ~ parkinsons_patients$MDVP.Fo + parkinsons_patients$MDVP.Fhi + parkinsons_patients$MDVP.Flo + 
+               parkinsons_patients$MDVP.Jitter + parkinsons_patients$MDVP.Shimmer,
+              data = parkinsons_patients)
+summary(boundaries)
+
+```
+
+```{r}
+
+boundaries_complex <- lm(HNR ~ parkinsons_patients$MDVP.Fo + parkinsons_patients$MDVP.Fhi + parkinsons_patients$MDVP.Flo + 
+               parkinsons_patients$MDVP.Jitter + parkinsons_patients$MDVP.Shimmer + RPDE + DFA + PPE,
+              data = parkinsons_patients)
+summary(boundaries_complex)
+
+```
+
+```{r}
+
+AIC(boundaries, boundaries_complex)
+
+```
+
+Based on the models, there is evidence that as Parkinson's disease progresses, the vocal boundaries tend to become more unstable. Jitters and shimmers are statistically significant, indicating that it is impactful to how vocal boundaries change (NHR). Another model was added with the complexity measures of vocal stability, which also were statistically significant to interpreting vocal boundaries and Parkinson's disease progression.
+
+When calculating the AIC, the model with the complexity features is lower than the first model, indicating that it is better fit when understanding the association. The R-squared is also higher for the complexity model than the first model, as the variation of NHR is explained by 84.76% of the X variables.
+
+### Limitations
+
+In this analysis, some limitations were faced. One of the dataset, as it was observations from a 2007 study and during a period where vocal studies was not popular often. In addition, the NHR variable was a way to determine vocal severity, but there was no official variable in the dataset regarding progression of the disease or vocal boundaries.
+
+### Citations
+
+Little, M. (2007). Parkinsons [Dataset]. UCI Machine Learning Repository. <https://doi.org/10.24432/C59C74>.
