@@ -36,3 +36,6 @@ spread1,spread2,PPE - Three nonlinear measures of fundamental frequency variatio
 
 For this analysis, the following variables will be used: MDVP:Fhi, MDVP:Jitter, MDVP:Shimmer, MDVP: Flo, NHR, HNR, status, MDVP:Fo, RPDE, DFA, PPE.
 
+## Results
+
+
